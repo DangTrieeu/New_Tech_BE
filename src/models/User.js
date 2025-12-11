@@ -52,6 +52,12 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   User.associate = (models) => {
+    User.belongsToMany(models.Room, {
+      through: "UserRoom",
+      foreignKey: "user_id",
+      as: "joined_rooms"
+    });
+
     User.hasMany(models.Room, {
       foreignKey: "created_by",
       as: "created_rooms",
