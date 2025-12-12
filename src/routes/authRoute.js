@@ -7,5 +7,6 @@ const roleMiddleware = require("../middlewares/roleMiddleware");
 // router.use(authMiddleware.verifyToken);
 // router.use(roleMiddleware.checkRole(["ADMIN"]));
 router.post("/", authController.login); // login
+router.post("/logout", authMiddleware.verifyToken, authController.logout); // logout
  
 module.exports = router;
