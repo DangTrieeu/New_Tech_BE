@@ -35,19 +35,28 @@ module.exports = (io) => {
 
         // Send message
         socket.on("send_message", async (data) => {
+            console.log("Received send_message event:", data); // Log data nhận được
             // data: { room_id, content, type, file_url }
             try {
-                const { room_id, content, type, file_url } = data;
+                const { room_id, roomId, content, type, file_url } = data;
+                const finalRoomId = room_id || roomId;
+
+                if (!finalRoomId) {
+                    console.error("Missing room_id in send_message event");
+                    return socket.emit("error", { message: "room_id is required" });
+                }
 
                 // Validate room existence and membership if needed
 
                 const newMessage = await Message.create({
-                    room_id,
+                    room_id: finalRoomId,
                     user_id: socket.user.id,
                     content,
                     type: type || "TEXT",
                     file_url,
                 });
+
+                console.log("Message created:", newMessage.id); // Log message id
 
                 // Fetch user info to send back with message
                 const messageWithUser = await Message.findOne({
@@ -61,7 +70,10 @@ module.exports = (io) => {
                     ],
                 });
 
-                io.to(room_id).emit("receive_message", messageWithUser);
+                // Emit to room (convert to string just in case)
+                io.to(String(finalRoomId)).emit("receive_message", messageWithUser);
+                console.log(`Emitted receive_message to room ${finalRoomId}`);
+
             } catch (error) {
                 console.error("Send message error:", error);
                 socket.emit("error", { message: "Failed to send message" });
