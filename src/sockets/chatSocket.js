@@ -21,15 +21,18 @@ module.exports = (io) => {
     io.on("connection", (socket) => {
         console.log(`User connected: ${socket.user.id}`);
 
-        // Join room
-        socket.on("join_room", (roomId) => {
-            socket.join(roomId);
+        socket.on("join_room", (data) => {
+            // Xử lý cả trường hợp nhận object hoặc string/number
+            const roomId = typeof data === 'object' ? data.roomId : data;
+            socket.join(String(roomId));
             console.log(`User ${socket.user.id} joined room ${roomId}`);
         });
 
-        // Leave room
-        socket.on("leave_room", (roomId) => {
-            socket.leave(roomId);
+        // Leave room - SỬA LẠI
+        socket.on("leave_room", (data) => {
+            // Xử lý cả trường hợp nhận object hoặc string/number
+            const roomId = typeof data === 'object' ? data.roomId : data;
+            socket.leave(String(roomId));
             console.log(`User ${socket.user.id} left room ${roomId}`);
         });
 
