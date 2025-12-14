@@ -1,6 +1,8 @@
 const authRepository = require("../repositories/authRepository");
+const userRepository = require("../repositories/userRepository");
 const bcrypt = require("bcryptjs");
 const JwtUtils = require("../utils/jwt");
+const googleConfig = require("../configs/google");
 
 class authService {
   async login(email, password) {
@@ -70,6 +72,52 @@ class authService {
     } catch (error) {
       throw new Error('Refresh token không hợp lệ hoặc đã hết hạn');
     }
+  }
+
+  async loginWithGoogle(googleUserData) {
+    if (!googleUserData.emailVerified) {
+      throw new Error('Email Google chưa được xác thực');
+    }
+
+    // Tìm user theo email và provider google
+    let user = await authRepository.findUserByEmail(googleUserData.email, 'google');
+
+    if (!user) {
+      // Tạo user mới nếu chưa tồn tại
+      user = await userRepository.createUser({
+        email: googleUserData.email,
+        name: googleUserData.name,
+        avatar_url: googleUserData.avatar_url,
+        provider: 'google',
+        role: 'USER',
+        status: 'ONLINE'
+      });
+    }
+
+    // Tạo access token & refresh token
+    const accessToken = JwtUtils.signAccess({ 
+      id: user.id, 
+      email: user.email, 
+      role: user.role 
+    });
+
+    const refreshToken = JwtUtils.signRefresh({ id: user.id });
+
+    // Cập nhật token và status
+    await authRepository.updateUserToken(user.id, refreshToken, 'ONLINE');
+
+    // Trả về user an toàn
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar_url: user.avatar_url,
+      role: user.role,
+      status: 'ONLINE',
+      provider: 'google'
+    };
+
+    return { accessToken, refreshToken, user: safeUser };
   }
 
 }
