@@ -28,6 +28,21 @@ class authController {
       return ApiResponse.error(res, error.message, 400);
     }
   }
+
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        return ApiResponse.error(res, 'Refresh token là bắt buộc', 400);
+      }
+
+      const result = await authService.refreshToken(refreshToken);
+      return ApiResponse.success(res, 'Làm mới token thành công', result);
+    } catch (error) {
+      return ApiResponse.error(res, error.message, 401);
+    }
+  }
 }
 
 

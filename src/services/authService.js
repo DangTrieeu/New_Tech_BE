@@ -48,5 +48,29 @@ class authService {
     return { message: 'Đăng xuất thành công' };
   }
 
+  async refreshToken(refreshToken) {
+    try {
+      // Verify refresh token
+      const decoded = JwtUtils.verifyRefresh(refreshToken);
+      
+      // Tìm user và kiểm tra refresh token có khớp không
+      const user = await authRepository.findUserById(decoded.id);
+      
+      if (!user) throw new Error('Người dùng không tồn tại');
+      if (user.token !== refreshToken) throw new Error('Refresh token không hợp lệ');
+
+      // Tạo access token mới
+      const newAccessToken = JwtUtils.signAccess({ 
+        id: user.id, 
+        email: user.email, 
+        role: user.role 
+      });
+
+      return { accessToken: newAccessToken };
+    } catch (error) {
+      throw new Error('Refresh token không hợp lệ hoặc đã hết hạn');
+    }
+  }
+
 }
 module.exports = new authService();
