@@ -42,7 +42,7 @@ class AdminRoomController {
           COUNT(DISTINCT m.id) as totalMessages,
           u.name as createdByName
         FROM rooms r
-        LEFT JOIN user_room ur ON r.id = ur.room_id
+        LEFT JOIN userroom ur ON r.id = ur.room_id
         LEFT JOIN messages m ON r.id = m.room_id
         LEFT JOIN users u ON r.created_by = u.id
         WHERE r.id = ?
@@ -61,7 +61,7 @@ class AdminRoomController {
       const members = await sequelize.query(
         `SELECT u.id, u.name, u.email, u.avatar_url, u.status, ur.createdAt as joinedAt
         FROM users u
-        INNER JOIN user_room ur ON u.id = ur.user_id
+        INNER JOIN userroom ur ON u.id = ur.user_id
         WHERE ur.room_id = ?
         ORDER BY ur.createdAt DESC`,
         {

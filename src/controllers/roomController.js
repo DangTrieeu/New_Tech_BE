@@ -18,7 +18,7 @@ class RoomController {
           COUNT(DISTINCT m.id) as messageCount,
           MAX(m.created_at) as lastMessageAt
         FROM rooms r
-        INNER JOIN user_room ur ON r.id = ur.room_id
+        INNER JOIN userroom ur ON r.id = ur.room_id
         LEFT JOIN messages m ON r.id = m.room_id
         WHERE ur.user_id = :userId AND ur.status = 'active'
         GROUP BY r.id, r.name, r.type, r.created_at
@@ -48,7 +48,7 @@ class RoomController {
 
       // Check if user is member
       const isMember = await sequelize.query(
-        `SELECT 1 FROM user_room WHERE room_id = :roomId AND user_id = :userId AND status = 'active'`,
+        `SELECT 1 FROM userroom WHERE room_id = :roomId AND user_id = :userId AND status = 'active'`,
         {
           replacements: { roomId: id, userId },
           type: sequelize.QueryTypes.SELECT,
@@ -66,7 +66,7 @@ class RoomController {
           COUNT(DISTINCT ur.user_id) as memberCount,
           COUNT(DISTINCT m.id) as messageCount
         FROM rooms r
-        LEFT JOIN user_room ur ON r.id = ur.room_id
+        LEFT JOIN userroom ur ON r.id = ur.room_id
         LEFT JOIN messages m ON r.id = m.room_id
         WHERE r.id = :roomId
         GROUP BY r.id
@@ -92,7 +92,7 @@ class RoomController {
           ur.status,
           ur.created_at as joinedAt
         FROM users u
-        INNER JOIN user_room ur ON u.id = ur.user_id
+        INNER JOIN userroom ur ON u.id = ur.user_id
         WHERE ur.room_id = :roomId
         ORDER BY ur.created_at DESC
         `,
