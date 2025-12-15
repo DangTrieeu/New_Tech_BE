@@ -37,10 +37,12 @@ module.exports = (sequelize, DataTypes) => {
 
   Room.associate = (models) => {
     Room.belongsToMany(models.User, {
-      through: "UserRoom",
+      through: models.UserRoom,
       foreignKey: "room_id",
-      as: "participants"
+      otherKey: "user_id",
+      as: "participants",
     });
+
 
     Room.belongsTo(models.User, {
       foreignKey: "created_by",
