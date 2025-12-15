@@ -95,28 +95,46 @@ class RoomService {
 
     // Lấy danh sách phòng của user
     async getUserRooms(userId) {
-        return await Room.findAll({
-            include: [
-                {
-                    model: User,
-                    as: "participants",
-                    where: { id: userId },
-                    attributes: [] // Chỉ dùng để filter, không cần select user info ở đây nếu không cần thiết
-                },
-                {
-                    model: User,
-                    as: "participants", // Include lại để lấy thông tin các thành viên khác trong phòng
-                    attributes: ["id", "name", "avatar_url", "status"]
-                },
-                {
-                    model: Message,
-                    as: "messages",
-                    limit: 1,
-                    order: [["created_at", "DESC"]]
-                }
-            ],
-            order: [["created_at", "DESC"]] // Hoặc order theo message mới nhất nếu phức tạp hơn
+        const user = await User.findByPk(userId, {
+            include: [{
+                model: Room,
+                as: "joined_rooms",
+                include: [
+                    {
+                        model: User,
+                        as: "participants",
+                        attributes: ["id", "name", "avatar_url", "status"],
+                        through: { attributes: [] } // Không lấy thông tin từ bảng trung gian UserRoom
+                    },
+                    {
+                        model: Message,
+                        as: "messages",
+                        limit: 1,
+                        order: [["created_at", "DESC"]],
+                        include: [{
+                            model: User,
+                            as: "user",
+                            attributes: ["id", "name", "avatar_url"]
+                        }]
+                    }
+                ],
+                order: [["created_at", "DESC"]]
+            }]
         });
+
+        const rooms = user ? user.joined_rooms : [];
+
+        // Với các phòng PRIVATE, gán name là tên của người kia
+        rooms.forEach(room => {
+            if (room.type === "PRIVATE") {
+                const otherUser = room.participants.find(p => p.id != userId);
+                if (otherUser) {
+                    room.name = otherUser.name;
+                }
+            }
+        });
+
+        return rooms;
     }
 
     // Lấy chi tiết phòng

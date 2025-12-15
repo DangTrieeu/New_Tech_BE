@@ -5,7 +5,7 @@ const roomRouter = require("./roomRoute");
 
 function route(app) {
     app.use("/auth", authRouter);
-    app.use("/users", userRouter);
+    app.use("/api/users", userRouter);
     app.use("/api/messages", messageRouter);
     app.use("/api/rooms", roomRouter);
 }
