@@ -14,7 +14,7 @@ Hệ thống AI Chat tích hợp 3 tính năng chính sử dụng **Groq AI** (L
 |------------|-----------|----------|
 | AI Model | Groq (llama-3.3-70b-versatile) | Xử lý ngôn ngữ tự nhiên |
 | Embeddings | Cohere (embed-multilingual-v3.0) | Tạo vector cho semantic search |
-| Vector DB | ChromaDB | Lưu cache Q&A với similarity search |
+| Vector DB | Qdrant | Lưu cache Q&A với similarity search (remote) |
 | Main DB | MySQL (Sequelize) | Lưu users, rooms, messages |
 
 ---
@@ -235,7 +235,7 @@ Authorization: Bearer <access_token>
         "created_at": "2025-12-14T10:30:00Z"
       }
     ],
-    "storageType": "ChromaDB (Vector Database)"
+    "storageType": "Qdrant (Remote Vector Database)"
   }
 }
 ```
@@ -255,14 +255,14 @@ Authorization: Bearer <access_token>
 ```mermaid
 graph TD
     A[User gửi câu hỏi] --> B[Tạo embedding với Cohere]
-    B --> C{Tìm trong ChromaDB}
+    B --> C{Tìm trong Qdrant}
     C -->|Similarity >= 0.85| D[Cache HIT]
     C -->|Không tìm thấy| E[Cache MISS]
     D --> F[Trả về answer từ cache]
     D --> G[Tăng hit_count]
     E --> H[Gọi Groq API]
     H --> I[Nhận response từ AI]
-    I --> J[Lưu vào ChromaDB]
+    I --> J[Lưu vào Qdrant]
     F --> K[Lưu message vào MySQL]
     I --> K
     K --> L[Trả về client]
@@ -335,14 +335,14 @@ DB_PASSWORD=your_password
 
 ## Utilities
 
-### Xem dữ liệu trong ChromaDB
+### Xem dữ liệu trong Qdrant
 ```bash
-node src/utils/viewChromaData.js
+node src/utils/viewQdrantData.js
 ```
 
-### Xem cấu trúc ChromaDB
+### Xem cấu trúc Qdrant
 ```bash
-node src/utils/exploreChromaStructure.js
+node src/utils/exploreQdrantStructure.js
 ```
 
 ---
@@ -363,7 +363,7 @@ node src/utils/exploreChromaStructure.js
 1. **Câu hỏi phổ biến** sẽ được cache tự động
 2. **Hit count cao** = Câu hỏi được dùng nhiều → Tiết kiệm nhiều token
 3. **Threshold 0.85** = Cân bằng giữa accuracy và cache hit rate
-4. **ChromaDB** lưu local, không cần cloud setup
+4. **Qdrant** remote vector DB (host: 103.188.83.154:6333)
 
 ---
 
@@ -381,16 +381,19 @@ node src/utils/exploreChromaStructure.js
 # Thêm COHERE_API_KEY vào .env
 ```
 
-**3. ChromaDB không khởi tạo được**
+**3. Qdrant không kết nối được**
 ```bash
-# Xóa folder chroma_data và để nó tự tạo lại
-rm -rf chroma_data
+# Kiểm tra env variables
+echo $QDRANT_HOST $QDRANT_PORT $QDRANT_API_KEY
+
+# Test connection
+node src/utils/viewQdrantData.js
 ```
 
 **4. Similarity search quá chậm**
 ```bash
-# Kiểm tra số lượng entries trong ChromaDB
-node src/utils/viewChromaData.js
+# Kiểm tra số lượng entries trong Qdrant
+node src/utils/viewQdrantData.js
 
 # Nếu quá nhiều (>10,000), cân nhắc clear cache
 ```

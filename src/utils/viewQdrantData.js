@@ -1,11 +1,11 @@
-const chromaDBService = require("../services/chromaDBService");
+const qdrantService = require("../services/qdrantService");
 
-async function viewChromaData() {
+async function viewQdrantData() {
   try {
-    console.log("Dang khoi tao ChromaDB...\n");
-    await chromaDBService.initialize();
+    console.log("Dang khoi tao Qdrant...\n");
+    await qdrantService.initialize();
 
-    const count = await chromaDBService.count();
+    const count = await qdrantService.count();
     console.log(`Tong so entries: ${count}\n`);
 
     if (count === 0) {
@@ -16,7 +16,7 @@ async function viewChromaData() {
     console.log("Danh sach Q&A trong cache:\n");
     console.log("=".repeat(80));
 
-    const allEntries = await chromaDBService.getAll(1000);
+    const allEntries = await qdrantService.getAll(1000);
 
     allEntries.forEach((entry, index) => {
       console.log(`\n[${index + 1}] ID: ${entry.id}`);
@@ -46,4 +46,4 @@ async function viewChromaData() {
   }
 }
 
-viewChromaData();
+viewQdrantData();
