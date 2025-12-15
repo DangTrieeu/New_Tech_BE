@@ -46,6 +46,14 @@ module.exports = (sequelize, DataTypes) => {
       as: "messages",
       onDelete: "CASCADE",
     });
+
+    Room.belongsToMany(models.User, {
+      through: "userroom",
+      foreignKey: "room_id",
+      otherKey: "user_id",
+      as: "members",
+      timestamps: false,
+    });
   };
 
   return Room;

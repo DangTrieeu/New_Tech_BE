@@ -18,6 +18,7 @@ class authController {
 
       return ApiResponse.success(res, 'Đăng nhập thành công', {
         accessToken: result.accessToken,
+        refreshToken: result.refreshToken,  // Trả về refreshToken
         user: result.user
       });
     } catch (error) {
