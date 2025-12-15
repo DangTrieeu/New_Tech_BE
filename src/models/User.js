@@ -73,14 +73,6 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "user_id",
       as: "messages",
     });
-
-    User.belongsToMany(models.Room, {
-      through: "userroom",
-      foreignKey: "user_id",
-      otherKey: "room_id",
-      as: "rooms",
-      timestamps: false,
-    });
   };
 
   return User;
