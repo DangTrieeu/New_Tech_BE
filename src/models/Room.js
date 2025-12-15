@@ -54,6 +54,7 @@ module.exports = (sequelize, DataTypes) => {
       as: "messages",
       onDelete: "CASCADE",
     });
+
   };
 
   return Room;
