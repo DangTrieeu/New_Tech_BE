@@ -6,10 +6,8 @@ class aiService {
   async handleAiChat(roomId, userId, question) {
     // 1. Kiểm tra cache trước
     const cachedResult = await semanticCacheService.findSimilarQuestion(question);
-    
+
     if (cachedResult) {
-      console.log(`🎯 Cache HIT! Similarity: ${cachedResult.similarity.toFixed(3)}`);
-      
       // Lưu câu hỏi của user
       await messageRepository.createMessage({
         room_id: roomId,
@@ -37,19 +35,20 @@ class aiService {
     }
 
     // 2. Cache MISS - Gọi AI API
-    console.log(`❌ Cache MISS - Calling Groq API`);
-    
+
     // Lấy lịch sử cuộc trò chuyện (10 tin nhắn gần nhất)
     const recentMessages = await messageRepository.getRecentMessages(roomId, 10);
-    
+
     // Format conversation history cho Groq
     const conversationHistory = groqService.formatConversationHistory(recentMessages);
 
     // Gọi AI để trả lời
     const aiResponse = await groqService.chatAssistant(question, conversationHistory);
 
-    // 3. Lưu vào cache để lần sau dùng
-    await semanticCacheService.saveToCache(question, aiResponse);
+    // 3. Lưu vào cache để lần sau dùng (Chạy background để không block response)
+    semanticCacheService.saveToCache(question, aiResponse).catch(err =>
+      console.error("Background cache save error:", err)
+    );
 
     // Lưu câu hỏi của user vào database
     await messageRepository.createMessage({
@@ -78,7 +77,7 @@ class aiService {
   async getSmartReplySuggestions(messageId) {
     // Lấy tin nhắn gốc
     const message = await messageRepository.getMessageById(messageId);
-    
+
     if (!message) {
       throw new Error('Tin nhắn không tồn tại');
     }

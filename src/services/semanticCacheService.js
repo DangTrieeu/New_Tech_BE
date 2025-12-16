@@ -46,12 +46,10 @@ class SemanticCacheService {
       const embedding = await cohereService.createEmbedding(question);
 
       // 2. Tạo unique ID
-      const id = `qa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const id = require('crypto').randomUUID();
 
       // 3. Lưu vào Qdrant
       await qdrantService.addQA(id, question, answer, embedding);
-
-      console.log(`✅ Cached new Q&A: "${question.substring(0, 50)}..."`);
     } catch (error) {
       console.error("Save to Cache Error:", error);
       // Không throw error để không ảnh hưởng main flow

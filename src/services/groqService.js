@@ -11,7 +11,7 @@ class GroqService {
   async callGroq(messages, options = {}) {
     try {
       const defaultParams = groqConfig.getDefaultParams();
-      
+
       const completion = await this.groq.chat.completions.create({
         messages,
         model: options.model || this.defaultModel,
@@ -40,7 +40,8 @@ class GroqService {
       }
     ];
 
-    return await this.callGroq(messages, { temperature: 0.7 });
+    const response = await this.callGroq(messages, { temperature: 0.7 });
+    return response;
   }
 
   async smartReplySuggestions(messageContent, conversationContext = []) {
@@ -59,7 +60,7 @@ class GroqService {
       }
     ];
 
-    const response = await this.callGroq(messages, { 
+    const response = await this.callGroq(messages, {
       temperature: 0.8,
       max_tokens: 256,
       model: this.fastModel
@@ -98,7 +99,7 @@ class GroqService {
       }
     ];
 
-    return await this.callGroq(promptMessages, { 
+    return await this.callGroq(promptMessages, {
       temperature: 0.5,
       max_tokens: 1024
     });

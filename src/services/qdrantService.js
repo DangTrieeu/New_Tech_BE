@@ -26,9 +26,8 @@ class QdrantService {
             distance: "Cosine",
           },
         });
-        console.log(`Qdrant collection "${this.collectionName}" created`);
       } else {
-        console.log(`Qdrant collection "${this.collectionName}" loaded`);
+        // Collection loaded
       }
 
       this.initialized = true;
@@ -56,8 +55,6 @@ class QdrantService {
           },
         ],
       });
-
-      console.log(`Added to Qdrant: "${question.substring(0, 50)}..."`);
     } catch (error) {
       console.error("Qdrant add error:", error);
       throw error;
