@@ -19,6 +19,10 @@ module.exports = (sequelize, DataTypes) => {
           isEmail: true,
         },
       },
+      password: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
       avatar_url: {
         type: DataTypes.STRING(255),
         allowNull: true,
@@ -26,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
       provider: {
         type: DataTypes.STRING(50),
         allowNull: true,
-        comment: "google, github",
+        comment: "google, github, local",
       },
       token: {
         type: DataTypes.STRING(255),
@@ -66,6 +70,14 @@ module.exports = (sequelize, DataTypes) => {
     User.hasMany(models.Message, {
       foreignKey: "user_id",
       as: "messages",
+    });
+
+    User.belongsToMany(models.Room, {
+      through: "userroom",
+      foreignKey: "user_id",
+      otherKey: "room_id",
+      as: "rooms",
+      timestamps: false,
     });
   };
 
