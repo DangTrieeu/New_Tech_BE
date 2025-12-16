@@ -10,4 +10,7 @@ router.get("/:roomId", authMiddleware.verifyToken, messageController.getMessages
 // Upload file
 router.post("/upload", authMiddleware.verifyToken, upload.single("file"), messageController.uploadFile);
 
+// Download file
+router.get("/download/:messageId", authMiddleware.verifyToken, messageController.downloadFile);
+
 module.exports = router;

@@ -61,6 +61,39 @@ class RoomService {
         }
     }
 
+    async ensureAiPrivateRoom(userId) {
+        // Check if user already has an AI_PRIVATE room
+        const user = await User.findByPk(userId, {
+            include: [{
+                model: Room,
+                as: "joined_rooms",
+                where: { type: "AI_PRIVATE" }
+            }]
+        });
+
+        if (user && user.joined_rooms && user.joined_rooms.length > 0) {
+            return user.joined_rooms[0];
+        }
+
+        // Create new AI_PRIVATE room
+        const transaction = await sequelize.transaction();
+        try {
+            const newRoom = await Room.create({
+                type: "AI_PRIVATE",
+                created_by: userId,
+                name: "AI Assistant"
+            }, { transaction });
+
+            await newRoom.addParticipants([userId], { transaction });
+
+            await transaction.commit();
+            return newRoom;
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
+
     // Tạo phòng chat nhóm
     async createGroupRoom(creatorId, name, participantIds) {
         const transaction = await sequelize.transaction();

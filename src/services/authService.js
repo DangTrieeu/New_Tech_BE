@@ -3,6 +3,7 @@ const userRepository = require("../repositories/userRepository");
 const bcrypt = require("bcryptjs");
 const JwtUtils = require("../utils/jwt");
 const googleConfig = require("../configs/google");
+const roomService = require("./roomService");
 
 class authService {
   async login(email, password) {
@@ -16,11 +17,14 @@ class authService {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new Error('Sai mật khẩu');
 
+    // Đảm bảo user có phòng chat AI (cho user cũ)
+    await roomService.ensureAiPrivateRoom(user.id);
+
     // Tạo access token & refresh token
-    const accessToken = JwtUtils.signAccess({ 
-      id: user.id, 
-      email: user.email, 
-      role: user.role 
+    const accessToken = JwtUtils.signAccess({
+      id: user.id,
+      email: user.email,
+      role: user.role
     });
 
     const refreshToken = JwtUtils.signRefresh({ id: user.id });
@@ -44,7 +48,7 @@ class authService {
   async logout(userId) {
     // Xóa token và cập nhật status về OFFLINE
     const user = await authRepository.clearUserToken(userId);
-    
+
     if (!user) throw new Error('Người dùng không tồn tại');
 
     return { message: 'Đăng xuất thành công' };
@@ -54,18 +58,18 @@ class authService {
     try {
       // Verify refresh token
       const decoded = JwtUtils.verifyRefresh(refreshToken);
-      
+
       // Tìm user và kiểm tra refresh token có khớp không
       const user = await authRepository.findUserById(decoded.id);
-      
+
       if (!user) throw new Error('Người dùng không tồn tại');
       if (user.token !== refreshToken) throw new Error('Refresh token không hợp lệ');
 
       // Tạo access token mới
-      const newAccessToken = JwtUtils.signAccess({ 
-        id: user.id, 
-        email: user.email, 
-        role: user.role 
+      const newAccessToken = JwtUtils.signAccess({
+        id: user.id,
+        email: user.email,
+        role: user.role
       });
 
       return { accessToken: newAccessToken };
@@ -94,11 +98,14 @@ class authService {
       });
     }
 
+    // Đảm bảo user có phòng chat AI
+    await roomService.ensureAiPrivateRoom(user.id);
+
     // Tạo access token & refresh token
-    const accessToken = JwtUtils.signAccess({ 
-      id: user.id, 
-      email: user.email, 
-      role: user.role 
+    const accessToken = JwtUtils.signAccess({
+      id: user.id,
+      email: user.email,
+      role: user.role
     });
 
     const refreshToken = JwtUtils.signRefresh({ id: user.id });

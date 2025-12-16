@@ -12,7 +12,7 @@ class AdminRoomController {
           COUNT(DISTINCT m.id) as totalMessages,
           u.name as createdByName
         FROM rooms r
-        LEFT JOIN userroom ur ON r.id = ur.room_id
+        LEFT JOIN user_rooms ur ON r.id = ur.room_id
         LEFT JOIN messages m ON r.id = m.room_id
         LEFT JOIN users u ON r.created_by = u.id
         GROUP BY r.id
@@ -42,7 +42,7 @@ class AdminRoomController {
           COUNT(DISTINCT m.id) as totalMessages,
           u.name as createdByName
         FROM rooms r
-        LEFT JOIN userroom ur ON r.id = ur.room_id
+        LEFT JOIN user_rooms ur ON r.id = ur.room_id
         LEFT JOIN messages m ON r.id = m.room_id
         LEFT JOIN users u ON r.created_by = u.id
         WHERE r.id = ?

@@ -4,19 +4,21 @@ const SecurityValidator = require("../utils/securityValidator");
 const semanticCacheService = require("./semanticCacheService");
 
 class aiService {
-  async handleAiChat(roomId, userId, question) {
+  async handleAiChat(roomId, userId, question, options = { createUserMessage: true }) {
     // 1. Kiểm tra cache trước
     const cachedResult = await semanticCacheService.findSimilarQuestion(question);
 
     if (cachedResult) {
       console.log("Cache HIT");
       // Lưu câu hỏi của user
-      await messageRepository.createMessage({
-        room_id: roomId,
-        user_id: userId,
-        type: 'TEXT',
-        content: `@AI ${question}`
-      });
+      if (options.createUserMessage) {
+        await messageRepository.createMessage({
+          room_id: roomId,
+          user_id: userId,
+          type: 'TEXT',
+          content: `@AI ${question}`
+        });
+      }
 
       // Lưu câu trả lời từ cache
       const aiMessage = await messageRepository.createMessage({
@@ -27,7 +29,7 @@ class aiService {
       });
 
       return {
-        question: `@AI ${question}`,
+        question: options.createUserMessage ? `@AI ${question}` : question,
         answer: cachedResult.answer,
         aiMessage
       };
@@ -41,12 +43,14 @@ class aiService {
       const safetyResponse = SecurityValidator.getSafetyResponse();
 
       // Lưu câu hỏi của user
-      await messageRepository.createMessage({
-        room_id: roomId,
-        user_id: userId,
-        type: 'TEXT',
-        content: `@AI ${question}`
-      });
+      if (options.createUserMessage) {
+        await messageRepository.createMessage({
+          room_id: roomId,
+          user_id: userId,
+          type: 'TEXT',
+          content: `@AI ${question}`
+        });
+      }
 
       // Lưu câu trả lời từ security validator
       const aiMessage = await messageRepository.createMessage({
@@ -57,7 +61,7 @@ class aiService {
       });
 
       return {
-        question: `@AI ${question}`,
+        question: options.createUserMessage ? `@AI ${question}` : question,
         answer: safetyResponse,
         aiMessage,
         blocked: true
@@ -81,12 +85,14 @@ class aiService {
     );
 
     // Lưu câu hỏi của user vào database
-    await messageRepository.createMessage({
-      room_id: roomId,
-      user_id: userId,
-      type: 'TEXT',
-      content: `@AI ${question}`
-    });
+    if (options.createUserMessage) {
+      await messageRepository.createMessage({
+        room_id: roomId,
+        user_id: userId,
+        type: 'TEXT',
+        content: `@AI ${question}`
+      });
+    }
 
     // Lưu câu trả lời của AI vào database
     const aiMessage = await messageRepository.createMessage({
@@ -97,7 +103,7 @@ class aiService {
     });
 
     return {
-      question: `@AI ${question}`,
+      question: options.createUserMessage ? `@AI ${question}` : question,
       answer: aiResponse,
       aiMessage
     };

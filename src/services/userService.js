@@ -1,5 +1,6 @@
 const userRepository = require("../repositories/userRepository");
 const bcrypt = require("bcryptjs");
+const roomService = require("./roomService");
 
 class userService {
   async register(userData) {
@@ -23,6 +24,9 @@ class userService {
       role: 'USER',
       status: 'OFFLINE'
     });
+
+    // Tạo phòng chat riêng với AI
+    await roomService.ensureAiPrivateRoom(newUser.id);
 
     // Trả về user an toàn (ẩn password)
     const safeUser = {

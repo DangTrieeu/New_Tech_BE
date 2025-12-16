@@ -1,5 +1,6 @@
 const { Message, User, Room } = require("../models");
 const jwt = require("jsonwebtoken");
+const aiService = require("../services/aiService");
 require("dotenv").config();
 
 module.exports = (io) => {
@@ -76,6 +77,23 @@ module.exports = (io) => {
                 // Emit to room (convert to string just in case)
                 io.to(String(finalRoomId)).emit("receive_message", messageWithUser);
                 console.log(`Emitted receive_message to room ${finalRoomId}`);
+
+                // Check for AI interaction
+                const room = await Room.findByPk(finalRoomId);
+                const isAiPrivate = room && room.type === 'AI_PRIVATE';
+                const isAiMention = content && content.includes("@AI");
+
+                if (isAiPrivate || isAiMention) {
+                    console.log("Triggering AI response...");
+                    // Call AI Service
+                    // We pass createUserMessage: false because we already created it above.
+                    const aiResult = await aiService.handleAiChat(finalRoomId, socket.user.id, content, { createUserMessage: false });
+
+                    if (aiResult && aiResult.aiMessage) {
+                        // Emit AI response
+                        io.to(String(finalRoomId)).emit("receive_message", aiResult.aiMessage);
+                    }
+                }
 
             } catch (error) {
                 console.error("Send message error:", error);

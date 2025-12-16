@@ -54,7 +54,39 @@ const uploadFile = async (req, res) => {
     }
 };
 
+const downloadFile = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const message = await Message.findByPk(messageId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found" });
+        }
+
+        if (!message.file_url) {
+            return res.status(400).json({ message: "No file attached to this message" });
+        }
+
+        let downloadUrl = message.file_url;
+
+        // Handle Cloudinary URLs to force download
+        if (downloadUrl.includes("cloudinary.com") && downloadUrl.includes("/upload/")) {
+            // Check if fl_attachment is already present
+            if (!downloadUrl.includes("fl_attachment")) {
+                const uploadIndex = downloadUrl.indexOf("/upload/");
+                downloadUrl = downloadUrl.slice(0, uploadIndex + 8) + "fl_attachment/" + downloadUrl.slice(uploadIndex + 8);
+            }
+        }
+
+        return res.redirect(downloadUrl);
+    } catch (error) {
+        console.error("Download file error:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 module.exports = {
     getMessages,
     uploadFile,
+    downloadFile,
 };
