@@ -77,64 +77,65 @@ class aiService {
         aiMessage
       };
     }
+  }
 
   async getSmartReplySuggestions(messageId) {
-      // Lấy tin nhắn gốc
-      const message = await messageRepository.getMessageById(messageId);
+    // Lấy tin nhắn gốc
+    const message = await messageRepository.getMessageById(messageId);
 
-      if (!message) {
-        throw new Error('Tin nhắn không tồn tại');
-      }
-
-      // Lấy context (5 tin nhắn gần nhất)
-      const recentMessages = await messageRepository.getRecentMessages(message.room_id, 5);
-      const conversationContext = groqService.formatConversationHistory(recentMessages);
-
-      // Gọi AI để tạo gợi ý
-      const suggestions = await groqService.smartReplySuggestions(
-        message.content,
-        conversationContext
-      );
-
-      return {
-        messageId: message.id,
-        originalMessage: message.content,
-        suggestions
-      };
+    if (!message) {
+      throw new Error('Tin nhắn không tồn tại');
     }
+
+    // Lấy context (5 tin nhắn gần nhất)
+    const recentMessages = await messageRepository.getRecentMessages(message.room_id, 5);
+    const conversationContext = groqService.formatConversationHistory(recentMessages);
+
+    // Gọi AI để tạo gợi ý
+    const suggestions = await groqService.smartReplySuggestions(
+      message.content,
+      conversationContext
+    );
+
+    return {
+      messageId: message.id,
+      originalMessage: message.content,
+      suggestions
+    };
+  }
 
   async summarizeConversation(roomId, messageLimit = 20) {
-      // Lấy tin nhắn gần nhất
-      const messages = await messageRepository.getRecentMessages(roomId, messageLimit);
+    // Lấy tin nhắn gần nhất
+    const messages = await messageRepository.getRecentMessages(roomId, messageLimit);
 
-      if (messages.length === 0) {
-        throw new Error('Không có tin nhắn để tóm tắt');
-      }
-
-      // Format messages để AI tóm tắt
-      const formattedMessages = messages.map(msg => ({
-        userName: msg.user ? msg.user.name : 'AI',
-        content: msg.content,
-        type: msg.type
-      }));
-
-      // Gọi AI để tóm tắt
-      const summary = await groqService.summarizeConversation(formattedMessages);
-
-      // Lưu tóm tắt vào database như một AI message
-      const summaryMessage = await messageRepository.createMessage({
-        room_id: roomId,
-        user_id: null,
-        type: 'AI',
-        content: `📝 **Tóm tắt cuộc trò chuyện:**\n\n${summary}`
-      });
-
-      return {
-        summary,
-        messageCount: messages.length,
-        summaryMessage
-      };
+    if (messages.length === 0) {
+      throw new Error('Không có tin nhắn để tóm tắt');
     }
+
+    // Format messages để AI tóm tắt
+    const formattedMessages = messages.map(msg => ({
+      userName: msg.user ? msg.user.name : 'AI',
+      content: msg.content,
+      type: msg.type
+    }));
+
+    // Gọi AI để tóm tắt
+    const summary = await groqService.summarizeConversation(formattedMessages);
+
+    // Lưu tóm tắt vào database như một AI message
+    const summaryMessage = await messageRepository.createMessage({
+      room_id: roomId,
+      user_id: null,
+      type: 'AI',
+      content: `📝 **Tóm tắt cuộc trò chuyện:**\n\n${summary}`
+    });
+
+    return {
+      summary,
+      messageCount: messages.length,
+      summaryMessage
+    };
   }
+}
 
 module.exports = new aiService();
