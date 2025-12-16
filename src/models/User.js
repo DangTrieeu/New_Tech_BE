@@ -57,10 +57,12 @@ module.exports = (sequelize, DataTypes) => {
 
   User.associate = (models) => {
     User.belongsToMany(models.Room, {
-      through: "UserRoom",
+      through: models.UserRoom,
       foreignKey: "user_id",
-      as: "joined_rooms"
+      otherKey: "room_id",
+      as: "joined_rooms",
     });
+
 
     User.hasMany(models.Room, {
       foreignKey: "created_by",
@@ -70,14 +72,6 @@ module.exports = (sequelize, DataTypes) => {
     User.hasMany(models.Message, {
       foreignKey: "user_id",
       as: "messages",
-    });
-
-    User.belongsToMany(models.Room, {
-      through: "userroom",
-      foreignKey: "user_id",
-      otherKey: "room_id",
-      as: "rooms",
-      timestamps: false,
     });
   };
 

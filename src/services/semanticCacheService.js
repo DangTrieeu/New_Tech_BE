@@ -1,4 +1,4 @@
-const chromaDBService = require("./chromaDBService");
+const qdrantService = require("./qdrantService");
 const cohereService = require("./cohereService");
 
 class SemanticCacheService {
@@ -11,8 +11,8 @@ class SemanticCacheService {
       // 1. Tạo embedding cho câu hỏi
       const questionEmbedding = await cohereService.createEmbedding(question);
 
-      // 2. Search trong ChromaDB
-      const result = await chromaDBService.searchSimilar(questionEmbedding, 1);
+      // 2. Search trong Qdrant
+      const result = await qdrantService.searchSimilar(questionEmbedding, 1);
 
       if (!result) {
         return null;
@@ -22,7 +22,7 @@ class SemanticCacheService {
       if (result.similarity >= this.SIMILARITY_THRESHOLD) {
         // Cache hit! Tăng hit_count
         const newHitCount = result.hitCount + 1;
-        await chromaDBService.updateHitCount(result.id, newHitCount);
+        await qdrantService.updateHitCount(result.id, newHitCount);
 
         return {
           question: result.question,
@@ -48,8 +48,8 @@ class SemanticCacheService {
       // 2. Tạo unique ID
       const id = `qa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // 3. Lưu vào ChromaDB
-      await chromaDBService.addQA(id, question, answer, embedding);
+      // 3. Lưu vào Qdrant
+      await qdrantService.addQA(id, question, answer, embedding);
 
       console.log(`✅ Cached new Q&A: "${question.substring(0, 50)}..."`);
     } catch (error) {
@@ -59,14 +59,14 @@ class SemanticCacheService {
   }
 
   async clearCache() {
-    await chromaDBService.clearAll();
-    console.log("🗑️ Cache cleared");
+    await qdrantService.clearAll();
+    console.log("Cache cleared");
   }
 
   async getCacheStats() {
     try {
-      const totalEntries = await chromaDBService.count();
-      const allEntries = await chromaDBService.getAll(1000);
+      const totalEntries = await qdrantService.count();
+      const allEntries = await qdrantService.getAll(1000);
 
       // Tính tổng hits
       const totalHits = allEntries.reduce((sum, entry) => sum + entry.hitCount, 0);
@@ -86,7 +86,7 @@ class SemanticCacheService {
         totalHits,
         avgHitPerEntry: totalEntries > 0 ? (totalHits / totalEntries).toFixed(2) : 0,
         topQuestions,
-        storageType: "ChromaDB (Vector Database)",
+        storageType: "Qdrant (Remote Vector Database)",
       };
     } catch (error) {
       console.error("Get Cache Stats Error:", error);

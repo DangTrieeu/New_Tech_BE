@@ -9,6 +9,7 @@ db.sequelize = sequelize;
 // Import models
 db.User = require("./User")(sequelize, Sequelize.DataTypes);
 db.Room = require("./Room")(sequelize, Sequelize.DataTypes);
+db.UserRoom = require("./UserRoom")(sequelize, Sequelize.DataTypes);
 db.Message = require("./Message")(sequelize, Sequelize.DataTypes);
 
 // Setup associations

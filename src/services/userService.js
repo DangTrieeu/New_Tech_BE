@@ -40,7 +40,7 @@ class userService {
 
   async getProfile(userId) {
     const user = await userRepository.findUserById(userId);
-    
+
     if (!user) {
       throw new Error('Người dùng không tồn tại');
     }
@@ -61,7 +61,7 @@ class userService {
 
   async updateProfile(userId, updateData) {
     const user = await userRepository.updateUser(userId, updateData);
-    
+
     if (!user) {
       throw new Error('Người dùng không tồn tại');
     }
@@ -76,6 +76,27 @@ class userService {
     };
 
     return safeUser;
+  }
+
+  async searchUsers(searchQuery, currentUserId, limit = 10) {
+    const { User } = require('../models');
+    const { Op } = require('sequelize');
+
+    const users = await User.findAll({
+      where: {
+        name: {
+          [Op.like]: `%${searchQuery}%`
+        },
+        id: {
+          [Op.ne]: currentUserId // Loại trừ user hiện tại
+        }
+      },
+      attributes: ['id', 'name', 'email', 'avatar_url', 'status'],
+      limit: limit,
+      order: [['name', 'ASC']]
+    });
+
+    return users;
   }
 }
 

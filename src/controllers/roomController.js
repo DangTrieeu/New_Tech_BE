@@ -1,115 +1,137 @@
-const { Room, User, Message, sequelize } = require("../models");
+const roomService = require("../services/roomService");
 const ApiResponse = require("../utils/apiResponse");
 
 class RoomController {
-  // Get rooms for current user
-  async getUserRooms(req, res) {
-    try {
-      const userId = req.user.id;
+    // Lấy hoặc tạo phòng chat 1-1
+    async getPrivateRoom(req, res) {
+        try {
+            const currentUserId = req.user.id;
+            const { partnerId } = req.body;
 
-      const rooms = await sequelize.query(
-        `
-        SELECT 
-          r.id,
-          r.name,
-          r.type,
-          r.created_at as createdAt,
-          COUNT(DISTINCT ur.user_id) as memberCount,
-          COUNT(DISTINCT m.id) as messageCount,
-          MAX(m.created_at) as lastMessageAt
-        FROM rooms r
-        INNER JOIN userroom ur ON r.id = ur.room_id
-        LEFT JOIN messages m ON r.id = m.room_id
-        WHERE ur.user_id = :userId AND ur.status = 'active'
-        GROUP BY r.id, r.name, r.type, r.created_at
-        ORDER BY lastMessageAt DESC
-        `,
-        {
-          replacements: { userId },
-          type: sequelize.QueryTypes.SELECT,
+            if (!partnerId) {
+                return ApiResponse.error(res, "partnerId là bắt buộc", 400);
+            }
+
+            if (currentUserId == partnerId) {
+                return ApiResponse.error(res, "Không thể chat với chính mình", 400);
+            }
+
+            const room = await roomService.getPrivateRoom(currentUserId, partnerId);
+            return ApiResponse.success(res, "Lấy phòng chat thành công", room);
+        } catch (error) {
+            console.error(error);
+            return ApiResponse.error(res, error.message, 500);
         }
-      );
-
-      return ApiResponse.success(res, "Lấy danh sách rooms thành công", {
-        rooms,
-        total: rooms.length,
-      });
-    } catch (error) {
-      console.error("Get user rooms error:", error);
-      return ApiResponse.error(res, "Lỗi khi lấy danh sách rooms", 500);
     }
-  }
 
-  // Get room detail
-  async getRoomById(req, res) {
-    try {
-      const { id } = req.params;
-      const userId = req.user.id;
+    // Tạo nhóm chat
+    async createGroupRoom(req, res) {
+        try {
+            const currentUserId = req.user.id;
+            const { name, participantIds } = req.body;
 
-      // Check if user is member
-      const isMember = await sequelize.query(
-        `SELECT 1 FROM userroom WHERE room_id = :roomId AND user_id = :userId AND status = 'active'`,
-        {
-          replacements: { roomId: id, userId },
-          type: sequelize.QueryTypes.SELECT,
+            if (!name || !participantIds || !Array.isArray(participantIds)) {
+                return ApiResponse.error(res, "Tên nhóm và danh sách thành viên là bắt buộc", 400);
+            }
+
+            const room = await roomService.createGroupRoom(currentUserId, name, participantIds);
+            return ApiResponse.success(res, "Tạo nhóm thành công", room);
+        } catch (error) {
+            console.error(error);
+            return ApiResponse.error(res, error.message, 500);
         }
-      );
-
-      if (!isMember || isMember.length === 0) {
-        return ApiResponse.error(res, "Bạn không có quyền truy cập room này", 403);
-      }
-
-      const room = await sequelize.query(
-        `
-        SELECT 
-          r.*,
-          COUNT(DISTINCT ur.user_id) as memberCount,
-          COUNT(DISTINCT m.id) as messageCount
-        FROM rooms r
-        LEFT JOIN userroom ur ON r.id = ur.room_id
-        LEFT JOIN messages m ON r.id = m.room_id
-        WHERE r.id = :roomId
-        GROUP BY r.id
-        `,
-        {
-          replacements: { roomId: id },
-          type: sequelize.QueryTypes.SELECT,
-        }
-      );
-
-      if (!room || room.length === 0) {
-        return ApiResponse.error(res, "Room không tồn tại", 404);
-      }
-
-      // Get members
-      const members = await sequelize.query(
-        `
-        SELECT 
-          u.id,
-          u.username,
-          u.email,
-          u.avatar,
-          ur.status,
-          ur.created_at as joinedAt
-        FROM users u
-        INNER JOIN userroom ur ON u.id = ur.user_id
-        WHERE ur.room_id = :roomId
-        ORDER BY ur.created_at DESC
-        `,
-        {
-          replacements: { roomId: id },
-          type: sequelize.QueryTypes.SELECT,
-        }
-      );
-
-      return ApiResponse.success(res, "Lấy thông tin room thành công", {
-        room: { ...room[0], members },
-      });
-    } catch (error) {
-      console.error("Get room detail error:", error);
-      return ApiResponse.error(res, "Lỗi khi lấy thông tin room", 500);
     }
-  }
+
+    // Lấy danh sách phòng của user
+    async getUserRooms(req, res) {
+        try {
+            const currentUserId = req.user.id;
+            const rooms = await roomService.getUserRooms(currentUserId);
+            return ApiResponse.success(res, "Lấy danh sách phòng thành công", rooms);
+        } catch (error) {
+            console.error(error);
+            return ApiResponse.error(res, error.message, 500);
+        }
+    }
+
+    // Lấy chi tiết phòng
+    async getRoomDetail(req, res) {
+        try {
+            const { id } = req.params;
+            const room = await roomService.getRoomDetail(id);
+            if (!room) {
+                return ApiResponse.error(res, "Phòng không tồn tại", 404);
+            }
+            return ApiResponse.success(res, "Lấy thông tin phòng thành công", room);
+        } catch (error) {
+            console.error(error);
+            return ApiResponse.error(res, error.message, 500);
+        }
+    }
+
+    // Cập nhật phòng
+    async updateRoom(req, res) {
+        try {
+            const { id } = req.params;
+            const { name } = req.body;
+
+            // Có thể thêm check quyền admin/creator ở đây
+
+            const updatedRoom = await roomService.updateRoom(id, { name });
+            return ApiResponse.success(res, "Cập nhật phòng thành công", updatedRoom);
+        } catch (error) {
+            console.error(error);
+            return ApiResponse.error(res, error.message, 500);
+        }
+    }
+
+    // Xóa phòng
+    async deleteRoom(req, res) {
+        try {
+            const { id } = req.params;
+            // Có thể thêm check quyền admin/creator ở đây
+
+            await roomService.deleteRoom(id);
+            return ApiResponse.success(res, "Xóa phòng thành công");
+        } catch (error) {
+            console.error(error);
+            return ApiResponse.error(res, error.message, 500);
+        }
+    }
+
+    // Thêm thành viên
+    async addParticipants(req, res) {
+        try {
+            const { id } = req.params;
+            const { userIds } = req.body; // Array of user IDs
+
+            if (!userIds || !Array.isArray(userIds)) {
+                return ApiResponse.error(res, "Danh sách userIds là bắt buộc", 400);
+            }
+
+            const result = await roomService.addParticipants(id, userIds);
+            return ApiResponse.success(res, "Thêm thành viên thành công", result);
+        } catch (error) {
+            return ApiResponse.error(res, error.message, 500);
+        }
+    }
+
+    // Xóa thành viên
+    async removeParticipant(req, res) {
+        try {
+            const { id } = req.params;
+            const { userId } = req.body;
+
+            if (!userId) {
+                return ApiResponse.error(res, "userId là bắt buộc", 400);
+            }
+
+            const result = await roomService.removeParticipant(id, userId);
+            return ApiResponse.success(res, "Xóa thành viên thành công", result);
+        } catch (error) {
+            return ApiResponse.error(res, error.message, 500);
+        }
+    }
 }
 
 module.exports = new RoomController();
