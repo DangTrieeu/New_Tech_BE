@@ -1,41 +1,9 @@
 const messageRepository = require("../repositories/messageRepository");
 const groqService = require("./groqService");
 const SecurityValidator = require("../utils/securityValidator");
-const semanticCacheService = require("./semanticCacheService");
 
 class aiService {
   async handleAiChat(roomId, userId, question, options = { createUserMessage: true }) {
-    // 1. Kiểm tra cache trước
-    const cachedResult = await semanticCacheService.findSimilarQuestion(question);
-
-    if (cachedResult) {
-      console.log("Cache HIT");
-      // Lưu câu hỏi của user
-      if (options.createUserMessage) {
-        await messageRepository.createMessage({
-          room_id: roomId,
-          user_id: userId,
-          type: 'TEXT',
-          content: `@AI ${question}`
-        });
-      }
-
-      // Lưu câu trả lời từ cache
-      const aiMessage = await messageRepository.createMessage({
-        room_id: roomId,
-        user_id: null,
-        type: 'AI',
-        content: cachedResult.answer
-      });
-
-      return {
-        question: options.createUserMessage ? `@AI ${question}` : question,
-        answer: cachedResult.answer,
-        aiMessage
-      };
-    }
-
-    // 2. Cache MISS - Gọi AI API
     // LỚP BẢO VỆ 1: Kiểm tra câu hỏi nhạy cảm TRƯỚC KHI gọi AI
     if (SecurityValidator.isSensitiveQuery(question)) {
       console.log(`Blocked sensitive query: "${question.substring(0, 50)}..."`);
@@ -78,11 +46,6 @@ class aiService {
     // Gọi AI để trả lời
     const aiResponse = await groqService.chatAssistant(question, conversationHistory);
     //console.log("AI Response:", aiResponse);
-
-    // 3. Lưu vào cache để lần sau dùng (Chạy background để không block response)
-    semanticCacheService.saveToCache(question, aiResponse).catch(err =>
-      console.error("Background cache save error:", err)
-    );
 
     // Lưu câu hỏi của user vào database
     if (options.createUserMessage) {
