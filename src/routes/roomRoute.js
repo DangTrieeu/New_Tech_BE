@@ -4,10 +4,6 @@ const roomController = require("../controllers/roomController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Protected routes
-router.use(authMiddleware.verifyToken);
-
-router.get("/", roomController.getUserRooms);
-router.get("/:id", roomController.getRoomById);
 // Tất cả các route đều cần đăng nhập
 router.use(authMiddleware.verifyToken);
 
