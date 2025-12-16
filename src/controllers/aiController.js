@@ -1,5 +1,4 @@
 const aiService = require("../services/aiService");
-const semanticCacheService = require("../services/semanticCacheService");
 const ApiResponse = require("../utils/apiResponse");
 
 class aiController {
@@ -52,23 +51,6 @@ class aiController {
     }
   }
 
-  async getCacheStats(req, res) {
-    try {
-      const stats = await semanticCacheService.getCacheStats();
-      return ApiResponse.success(res, 'Thống kê cache', stats);
-    } catch (error) {
-      return ApiResponse.error(res, error.message, 500);
-    }
-  }
-
-  async clearCache(req, res) {
-    try {
-      await semanticCacheService.clearCache();
-      return ApiResponse.success(res, 'Đã xóa toàn bộ cache');
-    } catch (error) {
-      return ApiResponse.error(res, error.message, 500);
-    }
-  }
 }
 
 module.exports = new aiController();

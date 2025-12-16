@@ -15,8 +15,4 @@ router.post("/smart-reply", aiController.getSmartReply);
 // FR-022: Conversation Summary - @AI summarize
 router.post("/summarize", aiController.summarizeConversation);
 
-// Cache management
-router.get("/cache/stats", aiController.getCacheStats);
-router.delete("/cache", aiController.clearCache); // TODO: Add admin middleware
-
 module.exports = router;

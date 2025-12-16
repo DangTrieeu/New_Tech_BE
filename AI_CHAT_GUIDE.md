@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Hệ thống AI Chat tích hợp 3 tính năng chính sử dụng **Groq AI** (LLaMA 3.3 70B) với **Semantic Caching** để tối ưu chi phí:
+Hệ thống AI Chat tích hợp 3 tính năng chính sử dụng **Groq AI** (LLaMA 3.3 70B):
 
 - **FR-020**: AI Chat Assistant - Trợ lý AI trả lời câu hỏi
 - **FR-021**: Smart Reply Suggestions - Gợi ý phản hồi thông minh  
@@ -13,8 +13,6 @@ Hệ thống AI Chat tích hợp 3 tính năng chính sử dụng **Groq AI** (L
 | Thành phần | Công nghệ | Mục đích |
 |------------|-----------|----------|
 | AI Model | Groq (llama-3.3-70b-versatile) | Xử lý ngôn ngữ tự nhiên |
-| Embeddings | Cohere (embed-multilingual-v3.0) | Tạo vector cho semantic search |
-| Vector DB | Qdrant | Lưu cache Q&A với similarity search (remote) |
 | Main DB | MySQL (Sequelize) | Lưu users, rooms, messages |
 
 ---
@@ -209,63 +207,19 @@ async function summarizeConversation(roomId) {
   displayMarkdown(data.data.summary);
 }
 ```
-
----
-
-## Cache Management
-
-### Xem thống kê cache
-```
-GET /ai/cache/stats
-Authorization: Bearer <access_token>
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "totalEntries": 150,
-    "totalHits": 420,
-    "avgHitPerEntry": "2.80",
-    "topQuestions": [
-      {
-        "question": "React là gì?",
-        "hit_count": 25,
-        "created_at": "2025-12-14T10:30:00Z"
-      }
-    ],
-    "storageType": "Qdrant (Remote Vector Database)"
-  }
-}
-```
-
-### Xóa toàn bộ cache (Admin only)
-```
-DELETE /ai/cache
-Authorization: Bearer <access_token>
-```
-
 ---
 
 ## Flow hoạt động
 
-### 1. AI Chat với Semantic Caching
+### 1. AI Chat Flow
 
 ```mermaid
 graph TD
-    A[User gửi câu hỏi] --> B[Tạo embedding với Cohere]
-    B --> C{Tìm trong Qdrant}
-    C -->|Similarity >= 0.85| D[Cache HIT]
-    C -->|Không tìm thấy| E[Cache MISS]
-    D --> F[Trả về answer từ cache]
-    D --> G[Tăng hit_count]
-    E --> H[Gọi Groq API]
-    H --> I[Nhận response từ AI]
-    I --> J[Lưu vào Qdrant]
-    F --> K[Lưu message vào MySQL]
-    I --> K
-    K --> L[Trả về client]
+    A[User gửi câu hỏi] --> B[Lấy lịch sử chat]
+    B --> C[Gọi Groq API]
+    C --> D[Nhận response từ AI]
+    D --> E[Lưu message vào MySQL]
+    E --> F[Trả về client]
 ```
 
 ### 2. Smart Reply Flow
@@ -316,9 +270,6 @@ AI: "Xin lỗi, tôi không thể cung cấp thông tin nhạy cảm về hệ t
 # Groq AI
 GROQ_API_KEY=your_groq_api_key
 
-# Cohere Embeddings
-COHERE_API_KEY=your_cohere_api_key
-
 # JWT
 JWT_SECRET=your_jwt_secret
 JWT_REFRESH_SECRET=your_jwt_refresh_secret
@@ -333,37 +284,15 @@ DB_PASSWORD=your_password
 
 ---
 
-## Utilities
+## Performance
 
-### Xem dữ liệu trong Qdrant
-```bash
-node src/utils/viewQdrantData.js
-```
+### Response Time
 
-### Xem cấu trúc Qdrant
-```bash
-node src/utils/exploreQdrantStructure.js
-```
-
----
-
-## Performance & Cost
-
-### Token Savings với Semantic Cache
-
-| Metric | Không có cache | Có cache (85% threshold) |
-|--------|----------------|--------------------------|
-| Cache hit rate | 0% | ~40-60% |
-| Avg response time | 2-3s | 0.5s (cache hit) |
-| Token usage | 100% | ~50% |
-| Cost savings | $0 | ~50% giảm chi phí API |
-
-### Best Practices
-
-1. **Câu hỏi phổ biến** sẽ được cache tự động
-2. **Hit count cao** = Câu hỏi được dùng nhiều → Tiết kiệm nhiều token
-3. **Threshold 0.85** = Cân bằng giữa accuracy và cache hit rate
-4. **Qdrant** remote vector DB (host: 103.188.83.154:6333)
+| Feature | Avg Response Time |
+|---------|------------------|
+| AI Chat | 2-3s |
+| Smart Reply | 1-2s |
+| Summary | 3-5s |
 
 ---
 
@@ -376,26 +305,16 @@ node src/utils/exploreQdrantStructure.js
 # Kiểm tra .env file có GROQ_API_KEY chưa
 ```
 
-**2. "COHERE_API_KEY is not defined"**
+**2. AI không trả lời hoặc lỗi timeout**
 ```bash
-# Thêm COHERE_API_KEY vào .env
+# Kiểm tra kết nối Groq API
+# Thử giảm temperature hoặc max_tokens
 ```
 
-**3. Qdrant không kết nối được**
+**3. Response không đúng định dạng JSON (Smart Reply)**
 ```bash
-# Kiểm tra env variables
-echo $QDRANT_HOST $QDRANT_PORT $QDRANT_API_KEY
-
-# Test connection
-node src/utils/viewQdrantData.js
-```
-
-**4. Similarity search quá chậm**
-```bash
-# Kiểm tra số lượng entries trong Qdrant
-node src/utils/viewQdrantData.js
-
-# Nếu quá nhiều (>10,000), cân nhắc clear cache
+# Kiểm tra prompt trong src/configs/prompts.js
+# Đảm bảo AI trả về đúng JSON array
 ```
 
 ---
@@ -407,8 +326,6 @@ node src/utils/viewQdrantData.js
 | POST | `/ai/chat` | AI Chat Assistant | Required |
 | POST | `/ai/smart-reply` | Smart Reply Suggestions | Required |
 | POST | `/ai/summarize` | Conversation Summary | Required |
-| GET | `/ai/cache/stats` | Xem thống kê cache | Required |
-| DELETE | `/ai/cache` | Xóa cache (Admin) | Required |
 
 ---
 

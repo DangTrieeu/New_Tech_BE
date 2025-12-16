@@ -10,11 +10,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@qdrant/js-client-rest": "^1.16.2",
     "bcryptjs": "^3.0.3",
-    "chromadb": "^3.1.7",
     "cloudinary": "^2.8.0",
-    "cohere-ai": "^7.20.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

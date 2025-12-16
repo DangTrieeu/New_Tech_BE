@@ -1,14 +1,14 @@
 const messageRepository = require("../repositories/messageRepository");
 const groqService = require("./groqService");
-const semanticCacheService = require("./semanticCacheService");
+const SecurityValidator = require("../utils/securityValidator");
 
 class aiService {
   async handleAiChat(roomId, userId, question) {
-    // 1. Kiểm tra cache trước
-    const cachedResult = await semanticCacheService.findSimilarQuestion(question);
-    
-    if (cachedResult) {
-      console.log(`🎯 Cache HIT! Similarity: ${cachedResult.similarity.toFixed(3)}`);
+    // LỚP BẢO VỆ 1: Kiểm tra câu hỏi nhạy cảm TRƯỚC KHI gọi AI
+    if (SecurityValidator.isSensitiveQuery(question)) {
+      console.log(`Blocked sensitive query: "${question.substring(0, 50)}..."`);
+      
+      const safetyResponse = SecurityValidator.getSafetyResponse();
       
       // Lưu câu hỏi của user
       await messageRepository.createMessage({
@@ -18,27 +18,23 @@ class aiService {
         content: `@AI ${question}`
       });
 
-      // Lưu câu trả lời từ cache
+      // Lưu câu trả lời từ security validator
       const aiMessage = await messageRepository.createMessage({
         room_id: roomId,
         user_id: null,
         type: 'AI',
-        content: cachedResult.answer
+        content: safetyResponse
       });
 
       return {
         question: `@AI ${question}`,
-        answer: cachedResult.answer,
+        answer: safetyResponse,
         aiMessage,
-        fromCache: true,
-        similarity: cachedResult.similarity,
-        hitCount: cachedResult.hitCount
+        blocked: true
       };
     }
 
-    // 2. Cache MISS - Gọi AI API
-    console.log(`❌ Cache MISS - Calling Groq API`);
-    
+    // LỚP BẢO VỆ 2: System prompt trong AI (backup layer)
     // Lấy lịch sử cuộc trò chuyện (10 tin nhắn gần nhất)
     const recentMessages = await messageRepository.getRecentMessages(roomId, 10);
     
@@ -47,9 +43,6 @@ class aiService {
 
     // Gọi AI để trả lời
     const aiResponse = await groqService.chatAssistant(question, conversationHistory);
-
-    // 3. Lưu vào cache để lần sau dùng
-    await semanticCacheService.saveToCache(question, aiResponse);
 
     // Lưu câu hỏi của user vào database
     await messageRepository.createMessage({
@@ -70,8 +63,7 @@ class aiService {
     return {
       question: `@AI ${question}`,
       answer: aiResponse,
-      aiMessage,
-      fromCache: false
+      aiMessage
     };
   }
 
