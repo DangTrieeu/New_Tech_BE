@@ -59,11 +59,11 @@ class AdminRoomController {
 
       // Get members
       const members = await sequelize.query(
-        `SELECT u.id, u.name, u.email, u.avatar_url, u.status, ur.createdAt as joinedAt
+        `SELECT u.id, u.name, u.email, u.avatar_url, u.status, ur.create_at as joinedAt
         FROM users u
-        INNER JOIN userroom ur ON u.id = ur.user_id
+        INNER JOIN user_rooms ur ON u.id = ur.user_id
         WHERE ur.room_id = ?
-        ORDER BY ur.createdAt DESC`,
+        ORDER BY ur.create_at DESC`,
         {
           replacements: [id],
           type: sequelize.QueryTypes.SELECT,
