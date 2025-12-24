@@ -90,8 +90,17 @@ module.exports = (io) => {
                     const aiResult = await aiService.handleAiChat(finalRoomId, socket.user.id, content, { createUserMessage: false });
 
                     if (aiResult && aiResult.aiMessage) {
+                        // Add AI user info manually for consistent frontend display
+                        const aiMessageWithUser = {
+                            ...aiResult.aiMessage.toJSON(),
+                            user: {
+                                id: null,
+                                name: 'AI Assistant',
+                                avatar_url: null
+                            }
+                        };
                         // Emit AI response
-                        io.to(String(finalRoomId)).emit("receive_message", aiResult.aiMessage);
+                        io.to(String(finalRoomId)).emit("receive_message", aiMessageWithUser);
                     }
                 }
 

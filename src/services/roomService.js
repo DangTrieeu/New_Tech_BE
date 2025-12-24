@@ -158,7 +158,11 @@ class RoomService {
         const rooms = user ? user.joined_rooms : [];
 
         // Với các phòng PRIVATE, gán name là tên của người kia
+        // Thêm participant_count cho tất cả phòng
         rooms.forEach(room => {
+            // Add participant count
+            room.dataValues.participant_count = room.participants ? room.participants.length : 0;
+
             if (room.type === "PRIVATE") {
                 const otherUser = room.participants.find(p => p.id != userId);
                 if (otherUser) {

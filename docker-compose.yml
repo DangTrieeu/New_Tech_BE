@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: twelveti/new_tech_backend:latest
+    container_name: new_tech_backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT= ${PORT}
+      - HOST_NAME=${HOST_NAME}
+      # Database
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      # APIs
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      # Frontend URL
+      - FRONTEND_URL=${FRONTEND_URL}
+    env_file:
+      - .env
+    networks:
+      - app-network
+      - do-an-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:5000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+networks:
+  app-network:
+    driver: bridge
+
+  do-an-network:
+    external: true
+    name: do-an-network
+
+  # MySQL Database Service (Optional - chỉ dùng nếu muốn chạy local DB)
+  # Nếu dùng remote DB (103.188.83.154), có thể comment hoặc xóa phần này
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: new_tech_mysql
+  #   restart: unless-stopped
+  #   environment:
+  #     - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+  #     - MYSQL_DATABASE=${DB_NAME}
+  #     - MYSQL_USER=${DB_USER}
+  #     - MYSQL_PASSWORD=${DB_PASSWORD}
+  #   ports:
+  #     - "3307:3306"
+  #   volumes:
+  #     - mysql-data:/var/lib/mysql
+  #   networks:
+  #     - app-network
+  #   command: --default-authentication-plugin=mysql_native_password
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+# volumes:
+#   mysql-data:

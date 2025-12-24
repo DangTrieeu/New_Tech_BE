@@ -13,6 +13,7 @@ const getMessages = async (req, res) => {
                     model: User,
                     as: "user",
                     attributes: ["id", "name", "avatar_url"],
+                    required: false, // Allow messages with null user_id (AI messages)
                 },
             ],
             order: [["created_at", "DESC"]], // Get latest first
@@ -20,12 +21,21 @@ const getMessages = async (req, res) => {
             offset: parseInt(offset),
         });
 
-        // Reverse to show oldest to newest in chat UI if needed, 
-        // but usually API returns latest first for pagination logic.
-        // Client can reverse it.
+        // Add AI user info for messages with null user_id
+        const messagesWithAiInfo = messages.rows.map(msg => {
+            const msgData = msg.toJSON();
+            if (msgData.user_id === null) {
+                msgData.user = {
+                    id: null,
+                    name: 'AI Assistant',
+                    avatar_url: null
+                };
+            }
+            return msgData;
+        });
 
         return res.status(200).json({
-            data: messages.rows,
+            data: messagesWithAiInfo,
             total: messages.count,
             currentPage: parseInt(page),
             totalPages: Math.ceil(messages.count / limit),

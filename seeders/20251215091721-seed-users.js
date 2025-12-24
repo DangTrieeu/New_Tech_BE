@@ -14,20 +14,37 @@ module.exports = {
     // 2. Mật khẩu mặc định (đã hash)
     const defaultPassword = bcrypt.hashSync('123123', 10);
 
-    // 3. Tạo dữ liệu
-    const usersData = userNames.map((name, index) => ({
-      name: name,
-      email: `${name}@gmail.com`,
-      password: defaultPassword,
-      provider: 'local',
-      role: index < 3 ? 'ADMIN' : 'USER', // 3 người đầu là ADMIN
-      status: 'OFFLINE',
-      created_at: new Date()
-    }));
+    // 3. Kiểm tra user đã tồn tại
+    const existingUsers = await queryInterface.sequelize.query(
+      `SELECT email FROM users WHERE email IN (${userNames.map(name => `'${name}@gmail.com'`).join(',')})`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    
+    const existingEmails = new Set(existingUsers.map(u => u.email));
 
-    // 4. Insert vào DB
-    await queryInterface.bulkInsert('users', usersData, {});
-    console.log(`Seeded ${usersData.length} users (3 Admins).`);
+    // 4. Lọc ra những user chưa tồn tại
+    const usersData = userNames
+      .filter((name, index) => !existingEmails.has(`${name}@gmail.com`))
+      .map((name, index) => {
+        const originalIndex = userNames.indexOf(name);
+        return {
+          name: name,
+          email: `${name}@gmail.com`,
+          password: defaultPassword,
+          provider: 'local',
+          role: originalIndex < 3 ? 'ADMIN' : 'USER', // 3 người đầu là ADMIN
+          status: 'OFFLINE',
+          created_at: new Date()
+        };
+      });
+
+    // 5. Insert vào DB nếu có user mới
+    if (usersData.length > 0) {
+      await queryInterface.bulkInsert('users', usersData, {});
+      console.log(`Seeded ${usersData.length} new users.`);
+    } else {
+      console.log('All users already exist. Skipping seeding.');
+    }
   },
 
   down: async (queryInterface, Sequelize) => {

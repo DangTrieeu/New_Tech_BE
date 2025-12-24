@@ -110,6 +110,17 @@ class RoomController {
             }
 
             const result = await roomService.addParticipants(id, userIds);
+
+            // Emit socket event to notify room members
+            const io = req.app.get('io');
+            if (io) {
+                io.to(String(id)).emit("room_updated", {
+                    roomId: id,
+                    action: "members_added",
+                    room: result
+                });
+            }
+
             return ApiResponse.success(res, "Thêm thành viên thành công", result);
         } catch (error) {
             return ApiResponse.error(res, error.message, 500);
