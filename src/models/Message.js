@@ -25,6 +25,15 @@ module.exports = (sequelize, DataTypes) => {
         },
         comment: "AI message thì user_id = NULL",
       },
+      reply_to_message_id: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+        references: {
+          model: "messages",
+          key: "id",
+        },
+        comment: "ID của tin nhắn được trả lời",
+      },
       type: {
         type: DataTypes.ENUM("TEXT", "IMAGE", "FILE", "AI"),
         defaultValue: "TEXT",
@@ -38,6 +47,16 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(255),
         allowNull: true,
         comment: "Dùng cho ảnh hoặc file upload",
+      },
+      is_recalled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: "Đánh dấu tin nhắn đã bị thu hồi",
+      },
+      recalled_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: "Thời gian thu hồi tin nhắn",
       },
       created_at: {
         type: DataTypes.DATE,
@@ -59,6 +78,16 @@ module.exports = (sequelize, DataTypes) => {
     Message.belongsTo(models.User, {
       foreignKey: "user_id",
       as: "user",
+    });
+
+    Message.belongsTo(models.Message, {
+      foreignKey: "reply_to_message_id",
+      as: "replyToMessage",
+    });
+
+    Message.hasMany(models.Message, {
+      foreignKey: "reply_to_message_id",
+      as: "replies",
     });
   };
 

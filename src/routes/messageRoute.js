@@ -13,4 +13,7 @@ router.post("/upload", authMiddleware.verifyToken, upload.single("file"), messag
 // Download file
 router.get("/download/:messageId", authMiddleware.verifyToken, messageController.downloadFile);
 
+// Recall message
+router.put("/recall/:messageId", authMiddleware.verifyToken, messageController.recallMessage);
+
 module.exports = router;

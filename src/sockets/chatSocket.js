@@ -40,9 +40,9 @@ module.exports = (io) => {
         // Send message
         socket.on("send_message", async (data) => {
             console.log("Received send_message event:", data); // Log data nhận được
-            // data: { room_id, content, type, file_url }
+            // data: { room_id, content, type, file_url, reply_to_message_id }
             try {
-                const { room_id, roomId, content, type, file_url } = data;
+                const { room_id, roomId, content, type, file_url, reply_to_message_id } = data;
                 const finalRoomId = room_id || roomId;
 
                 if (!finalRoomId) {
@@ -58,6 +58,7 @@ module.exports = (io) => {
                     content,
                     type: type || "TEXT",
                     file_url,
+                    reply_to_message_id: reply_to_message_id || null,
                 });
 
                 console.log("Message created:", newMessage.id); // Log message id
@@ -70,6 +71,20 @@ module.exports = (io) => {
                             model: User,
                             as: "user",
                             attributes: ["id", "name", "avatar_url"],
+                        },
+                        {
+                            model: Message,
+                            as: "replyToMessage",
+                            attributes: ["id", "content", "type", "user_id", "created_at"],
+                            include: [
+                                {
+                                    model: User,
+                                    as: "user",
+                                    attributes: ["id", "name", "avatar_url"],
+                                    required: false,
+                                },
+                            ],
+                            required: false,
                         },
                     ],
                 });
@@ -90,17 +105,8 @@ module.exports = (io) => {
                     const aiResult = await aiService.handleAiChat(finalRoomId, socket.user.id, content, { createUserMessage: false });
 
                     if (aiResult && aiResult.aiMessage) {
-                        // Add AI user info manually for consistent frontend display
-                        const aiMessageWithUser = {
-                            ...aiResult.aiMessage.toJSON(),
-                            user: {
-                                id: null,
-                                name: 'AI Assistant',
-                                avatar_url: null
-                            }
-                        };
                         // Emit AI response
-                        io.to(String(finalRoomId)).emit("receive_message", aiMessageWithUser);
+                        io.to(String(finalRoomId)).emit("receive_message", aiResult.aiMessage);
                     }
                 }
 
@@ -125,10 +131,76 @@ module.exports = (io) => {
 
                 await message.destroy(); // Or soft delete if preferred
 
-                io.to(message.room_id).emit("message_deleted", messageId);
+                io.to(String(message.room_id)).emit("message_deleted", messageId);
             } catch (error) {
                 console.error("Delete message error:", error);
                 socket.emit("error", { message: "Failed to delete message" });
+            }
+        });
+
+        // Recall message
+        socket.on("recall_message", async (data) => {
+            console.log("[RECALL] ========== START RECALL MESSAGE ==========");
+            console.log("[RECALL] Received data:", data);
+            console.log("[RECALL] User ID:", socket.user.id);
+
+            try {
+                const { messageId } = data;
+                const userId = socket.user.id;
+
+                console.log("[RECALL] Finding message with ID:", messageId);
+                const message = await Message.findByPk(messageId);
+
+                if (!message) {
+                    console.log("[RECALL] ❌ Message not found");
+                    return socket.emit("error", { message: "Message not found" });
+                }
+
+                console.log("[RECALL] Message found:", {
+                    id: message.id,
+                    room_id: message.room_id,
+                    user_id: message.user_id,
+                    is_recalled: message.is_recalled
+                });
+
+                // Check ownership
+                if (message.user_id !== userId) {
+                    console.log("[RECALL] ❌ Unauthorized:", { messageUserId: message.user_id, requestUserId: userId });
+                    return socket.emit("error", { message: "Unauthorized to recall this message" });
+                }
+
+                // Check if already recalled
+                if (message.is_recalled) {
+                    console.log("[RECALL] ❌ Already recalled");
+                    return socket.emit("error", { message: "Message already recalled" });
+                }
+
+                // Recall message
+                message.is_recalled = true;
+                message.recalled_at = new Date();
+                await message.save();
+
+                console.log("[RECALL] ✅ Message updated successfully");
+                console.log("[RECALL] Broadcasting to room:", String(message.room_id));
+
+                const payload = {
+                    messageId: message.id,
+                    room_id: message.room_id,
+                    is_recalled: true,
+                    recalled_at: message.recalled_at
+                };
+
+                console.log("[RECALL] Payload:", payload);
+
+                // Emit to all users in the room
+                io.to(String(message.room_id)).emit("message_recalled", payload);
+
+                console.log("[RECALL] ✅ Event emitted successfully");
+                console.log("[RECALL] ========== END RECALL MESSAGE ==========");
+            } catch (error) {
+                console.error("[RECALL] ❌ ERROR:", error);
+                console.error("[RECALL] Error stack:", error.stack);
+                socket.emit("error", { message: "Failed to recall message" });
             }
         });
 
