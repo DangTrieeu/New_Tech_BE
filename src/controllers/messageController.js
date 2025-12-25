@@ -16,7 +16,7 @@ const getMessages = async (req, res) => {
                     required: false, // Allow messages with null user_id (AI messages)
                 },
             ],
-            order: [["created_at", "DESC"]], // Get latest first
+            order: [["created_at", "ASC"]], // Get oldest first for correct display order
             limit: parseInt(limit),
             offset: parseInt(offset),
         });

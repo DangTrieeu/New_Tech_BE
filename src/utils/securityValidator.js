@@ -2,16 +2,16 @@ class SecurityValidator {
   static SENSITIVE_KEYWORDS = [
     // Database
     'password', 'passwd', 'pwd', 'database', 'db_password', 'mysql', 'connection string',
-    
+
     // API Keys
     'api key', 'api_key', 'apikey', 'secret', 'token', 'access_token', 'jwt_secret',
-    
+
     // Environment
     '.env', 'environment variable', 'env variable', 'dotenv',
-    
+
     // Infrastructure
     'ip address', 'port', 'server', 'host', 'credential',
-    
+
     // Security
     'private key', 'public key', 'encryption key', 'hash'
   ];
@@ -29,12 +29,12 @@ class SecurityValidator {
     const lowerQuestion = question.toLowerCase();
 
     // Kiểm tra keywords
-    const hasKeyword = this.SENSITIVE_KEYWORDS.some(keyword => 
+    const hasKeyword = this.SENSITIVE_KEYWORDS.some(keyword =>
       lowerQuestion.includes(keyword.toLowerCase())
     );
 
     // Kiểm tra patterns
-    const hasPattern = this.SENSITIVE_PATTERNS.some(pattern => 
+    const hasPattern = this.SENSITIVE_PATTERNS.some(pattern =>
       pattern.test(question)
     );
 
