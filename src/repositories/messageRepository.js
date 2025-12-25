@@ -12,6 +12,20 @@ class messageRepository {
           model: db.User,
           as: "user",
           attributes: ["id", "name", "email", "avatar_url"]
+        },
+        {
+          model: db.Message,
+          as: "replyToMessage",
+          attributes: ["id", "content", "type", "user_id", "created_at"],
+          include: [
+            {
+              model: db.User,
+              as: "user",
+              attributes: ["id", "name", "email", "avatar_url"],
+              required: false
+            }
+          ],
+          required: false
         }
       ]
     });
@@ -25,6 +39,20 @@ class messageRepository {
           model: db.User,
           as: "user",
           attributes: ["id", "name", "email", "avatar_url"]
+        },
+        {
+          model: db.Message,
+          as: "replyToMessage",
+          attributes: ["id", "content", "type", "user_id", "created_at"],
+          include: [
+            {
+              model: db.User,
+              as: "user",
+              attributes: ["id", "name", "email", "avatar_url"],
+              required: false
+            }
+          ],
+          required: false
         }
       ],
       order: [["created_at", "DESC"]],
@@ -40,8 +68,30 @@ class messageRepository {
   async deleteMessage(messageId) {
     const message = await db.Message.findByPk(messageId);
     if (!message) return null;
-    
+
     await message.destroy();
+    return message;
+  }
+
+  async recallMessage(messageId, userId) {
+    const message = await db.Message.findByPk(messageId);
+    if (!message) return null;
+
+    // Kiểm tra xem tin nhắn có thuộc về user này không
+    if (message.user_id !== userId) {
+      throw new Error('Unauthorized to recall this message');
+    }
+
+    // Kiểm tra xem tin nhắn đã bị thu hồi chưa
+    if (message.is_recalled) {
+      throw new Error('Message already recalled');
+    }
+
+    // Thu hồi tin nhắn
+    message.is_recalled = true;
+    message.recalled_at = new Date();
+    await message.save();
+
     return message;
   }
 }

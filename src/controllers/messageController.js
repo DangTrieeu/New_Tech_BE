@@ -1,4 +1,5 @@
 const { Message, User } = require("../models");
+const messageRepository = require("../repositories/messageRepository");
 
 const getMessages = async (req, res) => {
     try {
@@ -14,6 +15,20 @@ const getMessages = async (req, res) => {
                     as: "user",
                     attributes: ["id", "name", "avatar_url"],
                     required: false, // Allow messages with null user_id (AI messages)
+                },
+                {
+                    model: Message,
+                    as: "replyToMessage",
+                    attributes: ["id", "content", "type", "user_id", "created_at"],
+                    include: [
+                        {
+                            model: User,
+                            as: "user",
+                            attributes: ["id", "name", "avatar_url"],
+                            required: false,
+                        },
+                    ],
+                    required: false,
                 },
             ],
             order: [["created_at", "ASC"]], // Get oldest first for correct display order
@@ -95,8 +110,39 @@ const downloadFile = async (req, res) => {
     }
 };
 
+const recallMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const userId = req.user.id; // Lấy từ auth middleware
+
+        const message = await messageRepository.recallMessage(messageId, userId);
+
+        if (!message) {
+            return res.status(404).json({ message: "Message not found" });
+        }
+
+        return res.status(200).json({
+            message: "Message recalled successfully",
+            data: message
+        });
+    } catch (error) {
+        console.error("Recall message error:", error);
+
+        if (error.message === 'Unauthorized to recall this message') {
+            return res.status(403).json({ message: error.message });
+        }
+
+        if (error.message === 'Message already recalled') {
+            return res.status(400).json({ message: error.message });
+        }
+
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 module.exports = {
     getMessages,
     uploadFile,
     downloadFile,
+    recallMessage,
 };
