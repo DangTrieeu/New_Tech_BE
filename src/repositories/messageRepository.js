@@ -65,6 +65,37 @@ class messageRepository {
     return messages.reverse(); // Đảo ngược để tin nhắn cũ nhất ở đầu
   }
 
+  async getMessagesWithPagination(roomId, limit = 20, offset = 0) {
+    return await db.Message.findAndCountAll({
+      where: { room_id: roomId },
+      include: [
+        {
+          model: db.User,
+          as: "user",
+          attributes: ["id", "name", "avatar_url"],
+          required: false, // Allow messages with null user_id (AI messages)
+        },
+        {
+          model: db.Message,
+          as: "replyToMessage",
+          attributes: ["id", "content", "type", "user_id", "created_at"],
+          include: [
+            {
+              model: db.User,
+              as: "user",
+              attributes: ["id", "name", "avatar_url"],
+              required: false,
+            },
+          ],
+          required: false,
+        },
+      ],
+      order: [["created_at", "ASC"]], // Get oldest first for correct display order
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
+  }
+
   async deleteMessage(messageId) {
     const message = await db.Message.findByPk(messageId);
     if (!message) return null;
