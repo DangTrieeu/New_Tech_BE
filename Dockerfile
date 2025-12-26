@@ -1,41 +1,32 @@
-# Build stage
-FROM node:18-alpine AS build
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install all dependencies (including devDependencies for potential build needs)
-RUN npm ci
-
-# Production stage
+# Use Node.js 18 Alpine for smaller image size
 FROM node:18-alpine
 
+# Set working directory
 WORKDIR /app
 
-# Install production dependencies only
+# Install production dependencies first (better caching)
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Copy application code
-COPY --chown=node:node . .
-
-# Copy config directory if needed
-COPY --chown=node:node config ./config
+COPY . .
 
 # Create necessary directories with proper permissions
-RUN mkdir -p logs uploads && chown -R node:node /app
+RUN mkdir -p logs uploads && \
+    chown -R node:node /app
 
-# Switch to non-root user
+# Switch to non-root user for security
 USER node
 
-# Expose port
+# Expose application port
 EXPOSE 5000
 
-# Health check
+# Set environment to production
+ENV NODE_ENV=production
+
+# Health check endpoint (adjust if you have a /health route)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get('http://localhost:5000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "index.js"]

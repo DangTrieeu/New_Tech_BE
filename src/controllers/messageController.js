@@ -16,11 +16,17 @@ const getMessages = async (req, res) => {
 
 const uploadFile = async (req, res) => {
     try {
+        console.log("Upload request received");
+        console.log("File:", req.file);
+        console.log("Body:", req.body);
+
         if (!req.file) {
+            console.error("No file in request");
             return res.status(400).json({ message: "No file uploaded" });
         }
 
         // Multer-storage-cloudinary puts the url in req.file.path
+        console.log("Upload successful:", req.file.path);
         return res.status(200).json({
             url: req.file.path,
             filename: req.file.filename,
@@ -28,7 +34,11 @@ const uploadFile = async (req, res) => {
         });
     } catch (error) {
         console.error("Upload file error:", error);
-        return res.status(500).json({ message: "Upload failed" });
+        console.error("Error stack:", error.stack);
+        return res.status(500).json({
+            message: "Upload failed",
+            error: error.message
+        });
     }
 };
 
