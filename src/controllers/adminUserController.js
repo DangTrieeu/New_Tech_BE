@@ -2,10 +2,19 @@ const adminService = require("../services/adminService");
 const ApiResponse = require("../utils/apiResponse");
 
 class AdminUserController {
-  // FR-031: Get all users
+  // FR-031: Get all users with pagination, sorting and search
   async getAllUsers(req, res) {
     try {
-      const result = await adminService.getAllUsers();
+      const { page, limit, sortBy, sortOrder, search } = req.query;
+      
+      const result = await adminService.getAllUsers({
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+        search
+      });
+      
       return ApiResponse.success(res, "Lấy danh sách users thành công", result);
     } catch (error) {
       console.error("Get all users error:", error);

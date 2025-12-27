@@ -5,7 +5,15 @@ class AdminRoomController {
   // FR-032: Get all rooms
   async getAllRooms(req, res) {
     try {
-      const result = await adminService.getAllRooms();
+      const { page, limit, sortBy, sortOrder, search } = req.query;
+      
+      const result = await adminService.getAllRooms({
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+        search
+      });
       return ApiResponse.success(res, "Lấy danh sách rooms thành công", result);
     } catch (error) {
       console.error("Get all rooms error:", error);

@@ -54,14 +54,27 @@ class AdminService {
   // ==================== USER SERVICES ====================
 
   /**
-   * Get all users with statistics
+   * Get all users with statistics, pagination, sorting and search
    */
-  async getAllUsers() {
-    const users = await adminRepository.getAllUsersWithStats();
-    return {
-      users,
-      total: users.length,
-    };
+  async getAllUsers({ page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc', search = '' }) {
+    // Validate pagination
+    const parsedPage = Math.max(1, parseInt(page));
+    const parsedLimit = Math.max(1, Math.min(100, parseInt(limit))); // Max 100 per page
+
+    // Validate sort order
+    const validSortOrder = ['asc', 'desc'].includes(sortOrder.toLowerCase())
+      ? sortOrder.toLowerCase()
+      : 'desc';
+
+    const result = await adminRepository.getAllUsersWithStats({
+      page: parsedPage,
+      limit: parsedLimit,
+      sortBy,
+      sortOrder: validSortOrder,
+      search: search.trim()
+    });
+
+    return result;
   }
 
   /**
@@ -128,14 +141,30 @@ class AdminService {
   // ==================== ROOM SERVICES ====================
 
   /**
-   * Get all rooms with statistics
+   * Get all rooms with statistics, pagination, sorting and search
    */
-  async getAllRooms() {
-    const rooms = await adminRepository.getAllRoomsWithStats();
-    return {
-      rooms,
-      total: rooms.length,
-    };
+  async getAllRooms({ page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'desc', search = '' }) {
+    // Validate pagination
+    const parsedPage = Math.max(1, parseInt(page));
+    const parsedLimit = Math.max(1, Math.min(100, parseInt(limit))); // Max 100 per page
+
+    // Validate sort order
+    const validSortOrder = ['asc', 'desc'].includes(sortOrder.toLowerCase())
+      ? sortOrder.toLowerCase()
+      : 'desc';
+
+    const result = await adminRepository.getAllRoomsWithStats({
+      page: parsedPage,
+      limit: parsedLimit,
+      sortBy,
+      sortOrder: validSortOrder,
+      search: search.trim()
+    });
+
+    console.log('🔧 Service result keys:', Object.keys(result));
+    console.log('🔧 Service totalPages:', result.totalPages);
+
+    return result;
   }
 
   /**

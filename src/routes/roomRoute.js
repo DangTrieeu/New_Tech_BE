@@ -3,7 +3,6 @@ const router = express.Router();
 const roomController = require("../controllers/roomController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// Protected routes
 // Tất cả các route đều cần đăng nhập
 router.use(authMiddleware.verifyToken);
 
