@@ -1,5 +1,6 @@
 const aiService = require("../services/aiService");
 const ApiResponse = require("../utils/apiResponse");
+const MarkdownFormatter = require("../utils/markdownFormatter");
 
 class aiController {
   async chatWithAI(req, res) {
@@ -46,6 +47,34 @@ class aiController {
         messageLimit || 20
       );
       return ApiResponse.success(res, 'Đã tóm tắt cuộc trò chuyện', result);
+    } catch (error) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  // Endpoint mới để format markdown (optional - for testing)
+  async formatMarkdown(req, res) {
+    try {
+      const { text, format = 'html' } = req.body;
+
+      if (!text) {
+        return ApiResponse.error(res, 'text là bắt buộc', 400);
+      }
+
+      let result;
+      if (format === 'html') {
+        result = MarkdownFormatter.formatComplete(text);
+      } else if (format === 'plain') {
+        result = MarkdownFormatter.toPlainText(text);
+      } else {
+        result = text;
+      }
+
+      return ApiResponse.success(res, 'Đã format text', {
+        original: text,
+        formatted: result,
+        containsMarkdown: MarkdownFormatter.containsMarkdown(text)
+      });
     } catch (error) {
       return ApiResponse.error(res, error.message, 500);
     }
