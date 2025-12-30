@@ -140,15 +140,15 @@ class AdminRepository {
 
         // Determine sort field and order
         const validSortFields = {
-            'name': 'name',
-            'type': 'type',
-            'created_at': 'created_at',
+            'name': 'Room.name',
+            'type': 'Room.type',
+            'created_at': 'Room.created_at',
             'memberCount': 'memberCount',
             'totalMessages': 'totalMessages',
             'createdByName': 'createdByName'
         };
 
-        const sortField = validSortFields[sortBy] || 'created_at';
+        const orderField = validSortFields[sortBy] || 'Room.created_at';
         const orderDirection = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
         // Get total count
@@ -157,34 +157,42 @@ class AdminRepository {
         // Calculate pagination
         const offset = (page - 1) * limit;
 
-        // Build raw SQL query for better control with GROUP BY + pagination
-        const query = `
-            SELECT 
-                r.id,
-                r.name,
-                r.type,
-                r.created_by,
-                r.created_at,
-                COUNT(DISTINCT ur.user_id) as memberCount,
-                COUNT(DISTINCT m.id) as totalMessages,
-                u.name as createdByName
-            FROM rooms r
-            LEFT JOIN user_rooms ur ON r.id = ur.room_id
-            LEFT JOIN messages m ON r.id = m.room_id
-            LEFT JOIN users u ON r.created_by = u.id
-            WHERE ${search ? `(r.name LIKE :search OR r.type LIKE :search)` : '1=1'}
-            GROUP BY r.id, r.name, r.type, r.created_by, r.created_at, u.name
-            ORDER BY ${sortField === 'createdByName' ? 'createdByName' : `r.${sortField}`} ${orderDirection}
-            LIMIT :limit OFFSET :offset
-        `;
-
-        const rooms = await db.sequelize.query(query, {
-            replacements: {
-                search: search ? `%${search}%` : null,
-                limit: limit,
-                offset: offset
-            },
-            type: db.sequelize.QueryTypes.SELECT
+        // Get rooms with stats using Sequelize ORM
+        const rooms = await db.Room.findAll({
+            where: whereClause,
+            attributes: [
+                'id', 'name', 'type', 'created_by', 'created_at',
+                [db.sequelize.fn('COUNT', db.sequelize.fn('DISTINCT', db.sequelize.col('participants.id'))), 'memberCount'],
+                [db.sequelize.fn('COUNT', db.sequelize.fn('DISTINCT', db.sequelize.col('messages.id'))), 'totalMessages'],
+                [db.sequelize.col('creator.name'), 'createdByName']
+            ],
+            include: [
+                {
+                    model: db.User,
+                    as: 'participants',
+                    through: { attributes: [] },
+                    attributes: [],
+                    required: false
+                },
+                {
+                    model: db.Message,
+                    as: 'messages',
+                    attributes: [],
+                    required: false
+                },
+                {
+                    model: db.User,
+                    as: 'creator',
+                    attributes: ['name'],
+                    required: false
+                }
+            ],
+            group: ['Room.id', 'creator.id'],
+            order: [[db.sequelize.literal(orderField), orderDirection]],
+            limit: limit,
+            offset: offset,
+            raw: true,
+            subQuery: false
         });
 
         const result = {
@@ -194,15 +202,6 @@ class AdminRepository {
             limit,
             totalPages: Math.ceil(totalRooms / limit)
         };
-
-        console.log('📊 Repository returning:', {
-            roomsCount: rooms.length,
-            total: totalRooms,
-            page,
-            limit,
-            totalPages: result.totalPages,
-            keys: Object.keys(result)
-        });
 
         return result;
     }
