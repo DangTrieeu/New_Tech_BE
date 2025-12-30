@@ -15,4 +15,7 @@ router.post("/smart-reply", aiController.getSmartReply);
 // FR-022: Conversation Summary - @AI summarize
 router.post("/summarize", aiController.summarizeConversation);
 
+// Format markdown (optional - for testing)
+router.post("/format-markdown", aiController.formatMarkdown);
+
 module.exports = router;

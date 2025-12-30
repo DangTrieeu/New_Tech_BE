@@ -13,7 +13,7 @@ class MessageService {
 
         const messages = await messageRepository.getMessagesWithPagination(roomId, limit, offset);
 
-        // Add AI user info for messages with null user_id
+        // Add AI user info for messages with null user_id và thêm formatted flag
         const messagesWithAiInfo = messages.rows.map(msg => {
             const msgData = msg.toJSON();
             if (msgData.user_id === null) {
@@ -22,6 +22,9 @@ class MessageService {
                     name: 'AI Assistant',
                     avatar_url: null
                 };
+                // Đánh dấu tin nhắn AI cần format markdown
+                msgData.formatted = true;
+                msgData.isMarkdown = true;
             }
             return msgData;
         });

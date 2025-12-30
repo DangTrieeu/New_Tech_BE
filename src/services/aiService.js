@@ -28,11 +28,19 @@ class aiService {
         content: safetyResponse
       });
 
+      // Thêm metadata cho safety response
+      const formattedMessage = {
+        ...aiMessage.toJSON(),
+        formatted: true,
+        isMarkdown: true
+      };
+
       return {
         question: options.createUserMessage ? `@AI ${question}` : question,
         answer: safetyResponse,
-        aiMessage,
-        blocked: true
+        aiMessage: formattedMessage,
+        blocked: true,
+        formatted: true
       };
     }
 
@@ -65,10 +73,18 @@ class aiService {
       content: aiResponse
     });
 
+    // Thêm metadata để frontend biết cần format markdown
+    const formattedMessage = {
+      ...aiMessage.toJSON(),
+      formatted: true, // Flag để frontend render markdown
+      isMarkdown: true
+    };
+
     return {
       question: options.createUserMessage ? `@AI ${question}` : question,
       answer: aiResponse,
-      aiMessage
+      aiMessage: formattedMessage,
+      formatted: true
     };
   }
 

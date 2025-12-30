@@ -105,8 +105,13 @@ module.exports = (io) => {
                     const aiResult = await aiService.handleAiChat(finalRoomId, socket.user.id, content, { createUserMessage: false });
 
                     if (aiResult && aiResult.aiMessage) {
-                        // Emit AI response
-                        io.to(String(finalRoomId)).emit("receive_message", aiResult.aiMessage);
+                        // Emit AI response với formatted metadata
+                        const aiMessageWithMeta = {
+                            ...aiResult.aiMessage,
+                            formatted: true,
+                            isMarkdown: true
+                        };
+                        io.to(String(finalRoomId)).emit("receive_message", aiMessageWithMeta);
                     }
                 }
 
